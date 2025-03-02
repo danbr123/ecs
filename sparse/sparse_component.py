@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from numbers import Number
 from typing import Tuple, Union
 
@@ -30,11 +31,15 @@ class SparseComponent(Component, metaclass=Singleton):
     sparse = True
     initial_array_size = 1000
 
-    __slots__ = ("dimensions", "_array")
+    __slots__ = "_array"
 
-    def __init__(self, dimensions: int = 2) -> None:
-        self.dimensions = dimensions
-        self._array = self._create_array(self.initial_array_size, dimensions)
+    @property
+    @abstractmethod
+    def dimensions(self) -> int:
+        pass
+
+    def __init__(self) -> None:
+        self._array = self._create_array(self.initial_array_size, self.dimensions)
 
     def _create_array(self, rows: int, cols: int) -> ArrayWrapper:
         base_array = np.full((rows, cols), np.nan)

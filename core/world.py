@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Optional, Tuple
+from numbers import Number
+from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
 
 from core.component import Component
@@ -39,10 +40,10 @@ class Archetype:
     def __init__(self, signature: int) -> None:
         self.signature: int = signature
         self.entities: List[int] = []
-        self.storage: Dict[type, List[Any]] = {}
+        self.storage: Dict[type, List[Component]] = {}
         self.index_map: Dict[int, int] = {}  # entity_id -> index
 
-    def add_entity(self, entity_id: int, components: Dict[type, Any]) -> None:
+    def add_entity(self, entity_id: int, components: Dict[type, Component]) -> None:
         """Add an entity along with its component data.
         Assumes that the keys of `components` match the archetype's composition.
         """
@@ -151,7 +152,11 @@ class World:
         self.systems.append(system)
         self.systems.sort(key=lambda s: s.priority)
 
-    def create_entity(self, components: Dict[type, Any]) -> int:
+    def create_entity(
+            self,
+            components: Dict[type, Component],
+            sparse_components_data: Dict[type, Union[Tuple[Number, ...], Number]] = None
+    ) -> int:
         """
         Create an entity with given component data.
         For sparse components, also update the corresponding SparseComponent.
@@ -169,7 +174,10 @@ class World:
 
         for comp_type, sparse in self.sparse_components.items():
             if comp_type in components:
-                sparse.add(entity_id, components[comp_type])
+                if (sparse_components_data is None
+                        or comp_type not in sparse_components_data):
+                    raise ValueError(f"Data from {comp_type} was not provided")
+                sparse.add(entity_id, sparse_components_data[comp_type])
         self._invalidate_query_cache()
         return entity_id
 
@@ -236,7 +244,7 @@ class World:
             self.sparse_components[comp_type].remove(entity_id)
         self._invalidate_query_cache()
 
-    def query(self, required_comp_types: List[type]) -> List[Dict[type, Any]]:
+    def query(self, required_comp_types: List[type]) -> List[Dict[type, Component]]:
         """
         Query entities that have at least the required component types.
         Returns a list of dicts mapping component types to data.
@@ -253,12 +261,12 @@ class World:
             if version == self.world_version:
                 return cached_result
 
-        results: List[Dict[type, Any]] = []
+        results: List[Dict[type, Component]] = []
         for archetype in self.archetypes.values():
             if (archetype.signature & query_mask) == query_mask:
                 # Iterate over entities in this archetype.
                 for idx in range(len(archetype.entities)):
-                    entity_data: Dict[type, Any] = {}
+                    entity_data: Dict[type, Component] = {}
                     for comp_type in required_comp_types:
                         entity_data[comp_type] = archetype.storage[comp_type][idx]
                     results.append(entity_data)
