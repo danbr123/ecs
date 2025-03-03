@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import warnings
 
 from core.component import Component
+from core.event import EventBus
 from core.system import System
 from sparse.sparse_component import SparseComponent
 
@@ -137,6 +138,9 @@ class World:
         self.query_cache: Dict[
             int, Tuple[List[Tuple[int, Dict[type, Component]]], int]] = {}
         self.world_version: int = 0
+
+        # Event bus
+        self.event_bus = EventBus()
 
     def _invalidate_query_cache(self) -> None:
         self.query_cache.clear()
@@ -364,3 +368,4 @@ class World:
                 instead of frame-rate dependent
         """
         self.update_systems(dt)
+        self.event_bus.update()  # process async events
