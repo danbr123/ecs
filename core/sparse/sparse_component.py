@@ -6,7 +6,7 @@ import numpy as np
 
 from core.component import Component
 from core.utils import Singleton
-from sparse.array_wrapper import ArrayWrapper
+from core.sparse.array_wrapper import ArrayWrapper
 
 
 class SparseComponent(Component, metaclass=Singleton):

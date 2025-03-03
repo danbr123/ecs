@@ -1,9 +1,13 @@
-from typing import Callable, Dict, List, Type
+from typing import Callable, Dict, List, Optional, Type
+from weakref import ref, WeakMethod
 
 
 class Event:
     """Base class for events."""
     pass
+
+
+WeakCallable = Callable[[], Optional[Callable[[Event], None]]]
 
 
 class EventBus:
@@ -19,19 +23,17 @@ class EventBus:
     """
 
     def __init__(self) -> None:
-        # Maps event types (subclasses of Event) to lists of handler functions.
-        self._subscribers: Dict[Type[Event], List[Callable[[Event], None]]] = {}
+        self._subscribers: Dict[Type[Event], List[WeakCallable]] = {}
         # Two buffers for asynchronous events.
         self._current_async_queue: List[Event] = []
         self._next_async_queue: List[Event] = []
 
-    def subscribe(
-            self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
-        """Subscribe a handler to a specific event type.
+    def subscribe(self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
+        """
+        Subscribe a handler to a specific event type.
 
         Whenever an event of that type is dispatched, all subscribers will be called
-        with that event.
-        The timing depends on whether the publishing was sync or async.
+        with that event. The timing depends on whether the publishing was sync or async.
 
         Args:
             event_type (Type[Event]): The type of event to subscribe to.
@@ -39,7 +41,19 @@ class EventBus:
         """
         if event_type not in self._subscribers:
             self._subscribers[event_type] = []
-        self._subscribers[event_type].append(handler)
+
+        # Callback to remove dead references.
+        def _remove(_weak_handler) -> None:
+            try:
+                self._subscribers[event_type].remove(_weak_handler)
+            except ValueError:
+                pass
+
+        try:
+            weak_handler = WeakMethod(handler, _remove)
+        except TypeError:
+            weak_handler = ref(handler, _remove)
+        self._subscribers[event_type].append(weak_handler)
 
     def unsubscribe(
             self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
@@ -50,20 +64,26 @@ class EventBus:
             handler (Callable[[Event], None]): The handler to remove.
         """
         if event_type in self._subscribers:
-            self._subscribers[event_type].remove(handler)
+            for weak_handler in self._subscribers[event_type][:]:
+                actual = weak_handler()
+                if actual is None or actual == handler:
+                    self._subscribers[event_type].remove(weak_handler)
 
     def publish_sync(self, event: Event) -> None:
         """Publish an event synchronously.
 
         The event is immediately dispatched to all subscribers registered for its type.
+
         Args:
             event (Event): The event to publish.
         """
         if not isinstance(event, Event):
             raise TypeError("Published event must be an instance of Event")
         event_type = type(event)
-        for handler in self._subscribers.get(event_type, []):
-            handler(event)
+        for weak_handler in self._subscribers.get(event_type, []):
+            actual = weak_handler()
+            if actual is not None:
+                actual(event)
 
     def publish_async(self, event: Event) -> None:
         """
@@ -71,6 +91,7 @@ class EventBus:
 
         The event is added to the asynchronous queue and will be processed
         in the next update cycle.
+
         Args:
             event (Event): The event to publish.
         """
@@ -85,12 +106,14 @@ class EventBus:
         Uses double buffering to ensure events published in the current frame
         aren't processed until the next update cycle.
         """
-        # swap queues and reset next queue
+        # Swap queues and reset next queue.
         self._current_async_queue, self._next_async_queue = self._next_async_queue, []
         for event in self._current_async_queue:
             event_type = type(event)
-            for handler in self._subscribers.get(event_type, []):
-                handler(event)
+            for weak_handler in self._subscribers.get(event_type, []):
+                actual = weak_handler()
+                if actual is not None:
+                    actual(event)
         self._current_async_queue.clear()
 
     def update(self) -> None:

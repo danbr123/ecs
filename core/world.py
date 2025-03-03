@@ -5,7 +5,7 @@ import warnings
 from core.component import Component
 from core.event import EventBus
 from core.system import System
-from sparse.sparse_component import SparseComponent
+from core.sparse.sparse_component import SparseComponent
 
 # used to create a bitmask for component composition
 _component_bit_registry: Dict[type, int] = {}
@@ -178,6 +178,7 @@ class World:
         Args:
             system: initialized system
         """
+        system.initialize(self)
         self.systems.append(system)
         self.systems.sort(key=lambda s: s.priority)
 
