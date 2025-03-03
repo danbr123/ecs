@@ -33,9 +33,11 @@ def _compute_signature(components: Dict[type, Component]) -> int:
     """Get unique signature for a composition of components
 
     Args:
-        components: dictionary of
+        components: dictionary of component data - {type: instance}
 
     Returns:
+        an integer that represents the signature of this component composition. each
+            component affects a unique bit in that signature.
 
     """
     signature = 0
