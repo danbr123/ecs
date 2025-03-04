@@ -1,5 +1,5 @@
 from numbers import Number
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, TypeVar, Type
 import warnings
 
 from core.component import Component
@@ -7,12 +7,16 @@ from core.event import EventBus
 from core.system import System
 from core.sparse.sparse_component import SparseComponent
 
+
+_T = TypeVar("_T", bound=Component)
+_CompDataT = Dict[Type[Component], _T]
+
 # used to create a bitmask for component composition
-_component_bit_registry: Dict[type, int] = {}
+_component_bit_registry: Dict[Type[Component], int] = {}
 _next_component_bit: int = 1
 
 
-def get_component_bit(component_type: type) -> int:
+def get_component_bit(component_type: Type[Component]) -> int:
     """Return a unique bit for the given component type.
 
     If the component type has not been seen before, assign a new bit.
@@ -29,7 +33,7 @@ def get_component_bit(component_type: type) -> int:
     return _component_bit_registry[component_type]
 
 
-def _compute_signature(components: Dict[type, Component]) -> int:
+def _compute_signature(components: _CompDataT) -> int:
     """Get unique signature for a composition of components
 
     Args:
@@ -62,10 +66,10 @@ class Archetype:
     def __init__(self, signature: int) -> None:
         self.signature: int = signature
         self.entities: List[int] = []
-        self.storage: Dict[type, List[Component]] = {}
+        self.storage: Dict[Type[Component], List[Component]] = {}
         self.index_map: Dict[int, int] = {}  # entity_id -> index
 
-    def add_entity(self, entity_id: int, components: Dict[type, Component]) -> None:
+    def add_entity(self, entity_id: int, components: _CompDataT) -> None:
         """Add an entity along with its component data.
         Assumes that the keys of `components` match the archetype's composition.
         """
@@ -78,7 +82,7 @@ class Archetype:
                 self.storage[comp_type] = []
             self.storage[comp_type].append(components[comp_type])
 
-    def remove_entity(self, entity_id: int) -> Optional[Dict[type, Component]]:
+    def remove_entity(self, entity_id: int) -> Optional[_CompDataT]:
         """
         Remove an entity using swap-and-pop.
         Returns the removed component data (for potential reuse) or None if not found.
@@ -87,7 +91,7 @@ class Archetype:
             return None
         index = self.index_map[entity_id]
         last_index = len(self.entities) - 1
-        removed_data: Dict[type, Component] = {}
+        removed_data: _CompDataT = {}
 
         # Save removed data from each component's storage.
         for comp_type, data_list in self.storage.items():
@@ -125,20 +129,20 @@ class World:
         # Archetype-based storage
         self.archetypes: Dict[int, Archetype] = {}
         self.entity_to_archetype: Dict[int, Archetype] = {}
-        self.entity_components: Dict[int, Dict[type, Component]] = {}
+        self.entity_components: Dict[int, _CompDataT] = {}
         self.free_ids: List[int] = []
         self.next_entity_id: int = 0
 
         # Registry for sparse components
         # Keyed by component type, value is an instance of SparseComponent
-        self.sparse_components: Dict[type, SparseComponent] = {}
+        self.sparse_components: Dict[Type[Component], SparseComponent] = {}
 
         # Systems
         self.systems: List[System] = []
 
         # Query cache
         self.query_cache: Dict[
-            int, Tuple[List[Tuple[int, Dict[type, Component]]], int]] = {}
+            int, Tuple[List[Tuple[int, _CompDataT]], int]] = {}
         self.world_version: int = 0
 
         # Event bus
@@ -184,9 +188,9 @@ class World:
 
     def create_entity(
             self,
-            components: Dict[type, Component],
+            components: _CompDataT,
             sparse_components_data: Optional[
-                Dict[type, Union[Tuple[Number, ...], Number]]] = None
+                Dict[Type[Component], Union[Tuple[Number, ...], Number]]] = None
     ) -> int:
         """Create an entity with given component data.
 
@@ -277,7 +281,7 @@ class World:
             self.sparse_components[_t].add(entity_id, sparse_data)
         self._invalidate_query_cache()
 
-    def remove_component(self, entity_id: int, comp_type: type) -> None:
+    def remove_component(self, entity_id: int, comp_type: _T) -> None:
         """Remove a component from an entity.
 
         Also update the corresponding sparse component.
@@ -305,8 +309,8 @@ class World:
             self.sparse_components[comp_type].remove(entity_id)
         self._invalidate_query_cache()
 
-    def query(self, required_comp_types: List[type]
-              ) -> List[Tuple[int, Dict[type, Component]]]:
+    def query(self, required_comp_types: List[_T]
+              ) -> List[Tuple[int, _CompDataT]]:
         """
         Query entities that have at least the required component types.
         Returns a list of tuples, each containing an entity id and a dict mapping
@@ -333,13 +337,13 @@ class World:
             if version == self.world_version:
                 return cached_result
 
-        results: List[Tuple[int, Dict[type, Component]]] = []
+        results: List[Tuple[int, _CompDataT]] = []
         for archetype in self.archetypes.values():
             if (archetype.signature & query_mask) == query_mask:
                 # Iterate over entities in this archetype.
                 for idx in range(len(archetype.entities)):
                     entity_id = archetype.entities[idx]
-                    entity_data: Dict[type, Component] = {}
+                    entity_data: _CompDataT = {}
                     for comp_type in required_comp_types:
                         entity_data[comp_type] = archetype.storage[comp_type][idx]
                     results.append((entity_id, entity_data))
