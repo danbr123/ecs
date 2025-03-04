@@ -5,6 +5,10 @@ from typing import Any, Optional
 class System(ABC):
     """Abstract base class for systems in the ECS framework."""
 
+    # system group that the system belongs to (i.e. render, physics).
+    # the World.update() function can update systems of specific groups.
+    group: str = "default"
+
     def __init__(
             self,
             priority: float = 10.0,
@@ -14,10 +18,10 @@ class System(ABC):
         """Initialize a new system
 
         Args:
-            priority: number that dictates the update order of the system. higher number
-                means the system will be updated earlier than systems with a lower
-                number. can be a float or negative value, only the differences are
-                used.
+            priority (float): number that dictates the update order of the system.
+                higher number means the system will be updated earlier than systems with
+                a lower umber. can be a float or negative value, only the differences
+                are used.
             enabled: flag that checks if the `update()` function should be called
             name: optional name of the system - class name by default
         """

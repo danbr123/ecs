@@ -350,7 +350,7 @@ class World:
         self.query_cache[query_mask] = (results, self.world_version)
         return results
 
-    def update_systems(self, dt: float) -> None:
+    def update_systems(self, dt: float, group: Optional[str] = None) -> None:
         """Update all registered systems.
 
         Systems typically call query() and modify components.
@@ -362,17 +362,20 @@ class World:
         Args:
             dt (float): time since last update - used to make update time dependent
                 instead of frame-rate dependent
+            group (str): only update systems of this group. if None - update all systems
         """
         for system in self.systems:
-            if system.enabled:
+            if system.enabled and (group is None or system.group == group):
                 system.update(self, dt)
 
-    def update(self, dt: float) -> None:
+    def update(self, dt: float, group: Optional[str] = None) -> None:
         """Main update loop: update systems, and perform world-level maintenance.
 
         Args:
             dt (float): time since last update - used to make update time dependent
                 instead of frame-rate dependent
+            group (str): only update systems of this group. if None - update all systems
+
         """
-        self.update_systems(dt)
+        self.update_systems(dt, group)
         self.event_bus.update()  # process async events
