@@ -309,7 +309,7 @@ class World:
             self.sparse_components[comp_type].remove(entity_id)
         self._invalidate_query_cache()
 
-    def query(self, required_comp_types: List[_T]
+    def query(self, required_comp_types: List[Type[Component]]
               ) -> List[Tuple[int, _CompDataT]]:
         """
         Query entities that have at least the required component types.
