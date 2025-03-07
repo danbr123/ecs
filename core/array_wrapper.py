@@ -1,10 +1,9 @@
 from typing import Union
-
 import numpy as np
 
 
 class ArrayWrapper:
-    """Wraps np.ndarray to provide a stable reference when the array reference changes
+    """Wraps np.ndarray to provide a stable reference when the array reference changes.
 
     A stable wrapper around a NumPy array that forwards most operations
     (including arithmetic, bitwise, comparisons, and matrix multiplication)
@@ -14,6 +13,8 @@ class ArrayWrapper:
     explicitly defines most of the special methods so that Python's built-in
     operators (e.g., +, -, @) work as expected.
     """
+    scale_factor = 1.5
+
     def __init__(self, array: np.ndarray):
         self._array = array
 
@@ -21,6 +22,33 @@ class ArrayWrapper:
         if isinstance(array, ArrayWrapper):
             array = array._array
         self._array = array
+
+    def ensure_capacity(self, min_rows: int) -> None:
+        """Ensure that the underlying array has at least `min_rows` rows.
+
+        If the current number of rows is less than `min_rows`, the array is resized.
+        The new capacity is the maximum of min_rows and twice the current row count.
+        New slots are filled with np.nan.
+        """
+        current_rows, current_cols = self._array.shape
+        if min_rows <= current_rows:
+            return
+        new_rows = max(min_rows, current_rows * self.scale_factor)
+        new_array = np.full((new_rows, current_cols), np.nan, dtype=self._array.dtype)
+        new_array[:current_rows] = self._array
+        self.set_array(new_array)
+
+    def shrink_to(self, new_rows: int) -> None:
+        """Shrink the underlying array to exactly new_rows rows.
+
+        This method copies the first new_rows rows into a new array.
+        Use with care: frequent shrinking can lead to performance issues.
+        """
+        current_rows, current_cols = self._array.shape
+        if new_rows >= current_rows:
+            return
+        new_array = np.copy(self._array[:new_rows])
+        self.set_array(new_array)
 
     def __getitem__(self, key):
         return self._array[key]
@@ -32,7 +60,7 @@ class ArrayWrapper:
         return getattr(self._array, attr)
 
     def __len__(self):
-        return self._array.__len__()
+        return len(self._array)
 
     def __array__(self, *args, **kwargs):
         return self._array
