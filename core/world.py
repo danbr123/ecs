@@ -159,7 +159,7 @@ class World:
 
     def get_component_instance(self, comp_type: Type[Component]) -> Component:
         """
-        Return the registered component for the given type, initializing it if necessary.
+        Return the registered component for the given type, initializing it if necessary
         """
         if comp_type not in self.component_registry:
             self.register_component(comp_type)
@@ -179,9 +179,9 @@ class World:
         """
         Create an entity with a list of component types.
 
-        Each component type is looked up in the registry (and created automatically if needed),
-        and the resulting mapping is stored for that entity. Optionally, a mapping of initial data
-        can be supplied.
+        Each component type is looked up in the registry (and created automatically
+        if needed), and the resulting mapping is stored for that entity. Optionally,
+        a mapping of initial data can be supplied.
         """
         comp_data: _CompDataT = {
             comp_type: self.get_component_instance(comp_type)
@@ -230,7 +230,8 @@ class World:
     ) -> None:
         """
         Add a component to an existing entity.
-        The component is added to the entity's mapping and its data is stored via its own array.
+        The component is added to the entity's mapping and its data is stored via its
+        own array.
         """
         current = self.entity_components.get(entity_id)
         if current is None:
