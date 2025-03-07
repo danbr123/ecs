@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from numbers import Number
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, TypeVar, Dict, Type, List
 import numpy as np
 
 from core.array_wrapper import ArrayWrapper
@@ -29,7 +29,7 @@ class Component(ABC):
 
     Every component must inherit from this class in order to be processed properly.
     """
-    initial_capacity = 100
+    initial_capacity = 3
 
     __slots__ = ("_array", "entity_to_index", "free_slots", "size")
 
@@ -149,3 +149,48 @@ class Component(ABC):
             raise ValueError("Entity not found.")
         idx = self.entity_to_index[entity_id]
         return tuple(self._array[idx])
+
+
+_T = TypeVar("_T", bound=Component)
+_CompDataT = Dict[Type[Component], _T]
+
+
+class ComponentRegistry:
+    def __init__(self):
+        self._component_bits: Dict[Type[Component], int] = {}
+        self._next_bit = 1
+        self.components: _CompDataT = {}
+
+    def add_component(self, comp_type, instance):
+        self.components[comp_type] = instance
+
+    def get_bit(self, comp_type):
+        if comp_type not in self._component_bits:
+            self._component_bits[comp_type] = self._next_bit
+            self._next_bit <<= 1
+        return self._component_bits[comp_type]
+
+    def compute_signature(
+            self, components: Union[List[Type[Component]], _CompDataT]) -> int:
+        """Get unique signature for a composition of components.
+
+        Args:
+            components: dictionary of component data - {type: instance} or list of types
+
+        Returns:
+            an integer that represents the signature of this component composition.
+            Each component affects a unique bit in that signature.
+        """
+        signature = 0
+        for comp_type in components:
+            signature |= self.get_bit(comp_type)
+        return signature
+
+    def __contains__(self, key):
+        return key in self.components
+
+    def __setitem__(self, key, value):
+        self.components[key] = value
+
+    def __getitem__(self, item):
+        return self.components[item]

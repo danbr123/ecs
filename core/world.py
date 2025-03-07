@@ -3,48 +3,11 @@ from typing import Dict, List, Optional, Tuple, Union, TypeVar, Type
 import warnings
 
 from core.system import System
-from core.component import Component
+from core.component import Component, ComponentRegistry
 from core.event import EventBus
 
 _T = TypeVar("_T", bound=Component)
 _CompDataT = Dict[Type[Component], _T]
-
-# used to create a bitmask for component composition
-_component_bit_registry: Dict[Type[Component], int] = {}
-_next_component_bit: int = 1
-
-
-def get_component_bit(component_type: Type[Component]) -> int:
-    """Return a unique bit for the given component type.
-
-    If the component type has not been seen before, assign a new bit.
-
-    Args:
-        component_type (Type[Component]): Type of the component
-    Returns:
-        int - The bit of the component type, represented as an integer
-    """
-    global _next_component_bit
-    if component_type not in _component_bit_registry:
-        _component_bit_registry[component_type] = _next_component_bit
-        _next_component_bit <<= 1
-    return _component_bit_registry[component_type]
-
-
-def _compute_signature(components: Union[List[Type[Component]], _CompDataT]) -> int:
-    """Get unique signature for a composition of components.
-
-    Args:
-        components: dictionary of component data - {type: instance} or list of types
-
-    Returns:
-        an integer that represents the signature of this component composition.
-        Each component affects a unique bit in that signature.
-    """
-    signature = 0
-    for comp_type in components:
-        signature |= get_component_bit(comp_type)
-    return signature
 
 
 class Archetype:
@@ -127,7 +90,7 @@ class World:
         self.world_version: int = 0
 
         self.event_bus = EventBus()
-        self.component_registry: _CompDataT = {}
+        self.component_registry = ComponentRegistry()
 
     def _invalidate_query_cache(self) -> None:
         self.query_cache.clear()
@@ -136,8 +99,8 @@ class World:
     def _get_archetype(self, signature: int) -> Archetype:
         if signature not in self.archetypes:
             archetype = Archetype(signature)
-            for comp_type in _component_bit_registry:
-                bit = get_component_bit(comp_type)
+            for comp_type in self.component_registry.components:
+                bit = self.component_registry.get_bit(comp_type)
                 if signature & bit:
                     archetype.storage[comp_type] = []
             self.archetypes[signature] = archetype
@@ -192,7 +155,7 @@ class World:
         else:
             entity_id = self.next_entity_id
             self.next_entity_id += 1
-        signature = _compute_signature(components)
+        signature = self.component_registry.compute_signature(components)
         archetype = self._get_archetype(signature)
         archetype.add_entity(entity_id, comp_data)
         self.entity_to_archetype[entity_id] = archetype
@@ -243,7 +206,7 @@ class World:
         old_archetype.remove_entity(entity_id)
         current[comp_type] = self.get_component_instance(comp_type)
         self.entity_components[entity_id] = current
-        new_signature = _compute_signature(list(current.keys()))
+        new_signature = self.component_registry.compute_signature(list(current.keys()))
         new_archetype = self._get_archetype(new_signature)
         new_archetype.add_entity(entity_id, current)
         self.entity_to_archetype[entity_id] = new_archetype
@@ -264,7 +227,7 @@ class World:
         old_archetype.remove_entity(entity_id)
         current.pop(comp_type)
         self.entity_components[entity_id] = current
-        new_signature = _compute_signature(list(current.keys()))
+        new_signature = self.component_registry.compute_signature(list(current.keys()))
         new_archetype = self._get_archetype(new_signature)
         new_archetype.add_entity(entity_id, current)
         self.entity_to_archetype[entity_id] = new_archetype
@@ -283,7 +246,7 @@ class World:
         """
         query_mask = 0
         for comp_type in required_comp_types:
-            query_mask |= get_component_bit(comp_type)
+            query_mask |= self.component_registry.get_bit(comp_type)
         cache_entry = self.query_cache.get(query_mask)
         if cache_entry is not None:
             cached_result, version = cache_entry

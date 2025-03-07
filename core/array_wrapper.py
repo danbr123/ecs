@@ -33,7 +33,7 @@ class ArrayWrapper:
         current_rows, current_cols = self._array.shape
         if min_rows <= current_rows:
             return
-        new_rows = max(min_rows, current_rows * self.scale_factor)
+        new_rows = max(min_rows, int(current_rows * self.scale_factor))
         new_array = np.full((new_rows, current_cols), np.nan, dtype=self._array.dtype)
         new_array[:current_rows] = self._array
         self.set_array(new_array)
