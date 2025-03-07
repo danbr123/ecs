@@ -82,6 +82,7 @@ class World:
         self.entity_components: Dict[int, _CompDataT] = {}
         self.free_ids: List[int] = []
         self.next_entity_id: int = 0
+        self.num_entities: int = 0
 
         self.systems: List[System] = []
 
@@ -166,6 +167,7 @@ class World:
                 init_val = component_initial_data[comp_type]
             comp_instance.add(entity_id, init_val)
         self._invalidate_query_cache()
+        self.num_entities += 1
         return entity_id
 
     def remove_entity(self, entity_id: int) -> None:
@@ -184,6 +186,7 @@ class World:
         self.entity_components.pop(entity_id, None)
         self.free_ids.append(entity_id)
         self._invalidate_query_cache()
+        self.num_entities -= 1
 
     def add_component(
         self,
