@@ -28,10 +28,11 @@ This package supports:
 
 
 ### Example usage:
+
 ```python
-from core.world import World
-from core.component import Component
-from core.system import System
-from core.event import Event
+from ecs.world import World
+from ecs.component import Component
+from ecs.system import System
+from ecs.event import Event
 
 ```

@@ -28,16 +28,22 @@ class EventBus:
         self._current_async_queue: List[Event] = []
         self._next_async_queue: List[Event] = []
 
-    def subscribe(self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
-        """
-        Subscribe a handler to a specific event type.
+    def subscribe(
+            self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
+        """Subscribe a handler to a specific event type.
 
         Whenever an event of that type is dispatched, all subscribers will be called
         with that event. The timing depends on whether the publishing was sync or async.
 
         Args:
             event_type (Type[Event]): The type of event to subscribe to.
-            handler (Callable[[Event], None]): The function to call when the event is published.
+            handler (Callable[[Event], None]): The function to call when the event is
+                published.
+
+        Notes:
+            The handler is stored as a weak reference. This means that the original
+            reference has to be active for it to be called.
+            This also means that this feature does not work with `lambda` functions.
         """
         if event_type not in self._subscribers:
             self._subscribers[event_type] = []
@@ -86,11 +92,15 @@ class EventBus:
                 actual(event)
 
     def publish_async(self, event: Event) -> None:
-        """
-        Publish an event asynchronously.
+        """Publish an event asynchronously.
 
         The event is added to the asynchronous queue and will be processed
         in the next update cycle.
+
+        Note:
+            Async events are processed at the END of the NEXT update cycle. This means
+                that there is a 1 update delay between publishing and processing.
+                for real-time updates - use `publish_sync` instead.
 
         Args:
             event (Event): The event to publish.
@@ -117,8 +127,5 @@ class EventBus:
         self._current_async_queue.clear()
 
     def update(self) -> None:
-        """Update the event bus by processing asynchronous events.
-
-        This should be called once per frame (or update cycle).
-        """
+        """Update the event bus by processing asynchronous events."""
         self.process_async()

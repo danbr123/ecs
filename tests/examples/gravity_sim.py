@@ -4,15 +4,17 @@ import random
 import numpy as np
 import pygame
 
-from core.world import World
-from core.component import Component
-from core.system import System
+from ecs.world import World
+from ecs.component import Component
+from ecs.system import System
 
 FPS = 60
+PHYSICS_UPDATE_MULTIPLIER = 10
 
 # -----------------------------------------------------------------------------
 # Component Definitions
 # -----------------------------------------------------------------------------
+
 
 class Position(Component):
     """component for 2D positions."""
@@ -224,8 +226,8 @@ def main() -> None:
     # FPS counter font.
     font = pygame.font.SysFont(None, 24)
 
-    # Physics update: 10 times per frame.
-    physics_dt = 1 / (10 * FPS)
+    # Physics update: <PHYSICS_UPDATE_MULTIPLIER> times per frame.
+    physics_dt = 1 / (PHYSICS_UPDATE_MULTIPLIER * FPS)
     accumulator = 0.0
     last_time = time.perf_counter()
 

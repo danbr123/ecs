@@ -3,7 +3,7 @@ from numbers import Number
 from typing import Tuple, Union, Optional, TypeVar, Dict, Type, List
 import numpy as np
 
-from core.array_wrapper import ArrayWrapper
+from ecs.array_wrapper import ArrayWrapper
 
 
 class Component(ABC):
@@ -55,7 +55,8 @@ class Component(ABC):
         self.free_slots: list[int] = []
         self.size: int = 0
 
-    def _create_array(self, capacity: int, dims: int) -> ArrayWrapper:
+    @staticmethod
+    def _create_array(capacity: int, dims: int) -> ArrayWrapper:
         base_array = np.full((capacity, dims), np.nan)
         return ArrayWrapper(base_array)
 
@@ -156,6 +157,11 @@ _CompDataT = Dict[Type[Component], _T]
 
 
 class ComponentRegistry:
+    """Stores components information per-world
+
+    Allows a single instance per component type, and provides a function that extracts
+    the signature of a list of components (signature may differ in different registries)
+    """
     def __init__(self):
         self._component_bits: Dict[Type[Component], int] = {}
         self._next_bit = 1
@@ -173,6 +179,9 @@ class ComponentRegistry:
     def compute_signature(
             self, components: Union[List[Type[Component]], _CompDataT]) -> int:
         """Get unique signature for a composition of components.
+
+        The signature is only relevant for a specific registry. Each may have a
+        different signature for the same components list.
 
         Args:
             components: dictionary of component data - {type: instance} or list of types
