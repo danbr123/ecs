@@ -4,6 +4,7 @@ from weakref import ref, WeakMethod
 
 class Event:
     """Base class for events."""
+
     pass
 
 
@@ -29,7 +30,8 @@ class EventBus:
         self._next_async_queue: List[Event] = []
 
     def subscribe(
-            self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
+        self, event_type: Type[Event], handler: Callable[[Event], None]
+    ) -> None:
         """Subscribe a handler to a specific event type.
 
         Whenever an event of that type is dispatched, all subscribers will be called
@@ -62,7 +64,8 @@ class EventBus:
         self._subscribers[event_type].append(weak_handler)
 
     def unsubscribe(
-            self, event_type: Type[Event], handler: Callable[[Event], None]) -> None:
+        self, event_type: Type[Event], handler: Callable[[Event], None]
+    ) -> None:
         """Unsubscribe a handler from a specific event type.
 
         Args:

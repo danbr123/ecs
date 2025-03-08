@@ -10,10 +10,7 @@ class System(ABC):
     group: str = "default"
 
     def __init__(
-            self,
-            priority: float = 10.0,
-            enabled: bool = True,
-            name: Optional[str] = None
+        self, priority: float = 10.0, enabled: bool = True, name: Optional[str] = None
     ) -> None:
         """Initialize a new system
 

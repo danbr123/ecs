@@ -18,6 +18,7 @@ PHYSICS_UPDATE_MULTIPLIER = 10
 
 class Position(Component):
     """component for 2D positions."""
+
     @property
     def dimensions(self) -> int:
         return 2
@@ -25,6 +26,7 @@ class Position(Component):
 
 class Velocity(Component):
     """component for 2D velocities."""
+
     @property
     def dimensions(self) -> int:
         return 2
@@ -32,13 +34,15 @@ class Velocity(Component):
 
 class Mass(Component):
     """component for scalar mass values."""
+
     @property
     def dimensions(self) -> int:
         return 1
 
 
 class Renderable(Component):
-    """component for rendering data. Stored data: (R, G, B, radius) """
+    """component for rendering data. Stored data: (R, G, B, radius)"""
+
     @property
     def dimensions(self) -> int:
         return 4
@@ -46,6 +50,7 @@ class Renderable(Component):
 
 class Locked(Component):
     """component indicating that the entity's position is locked."""
+
     @property
     def dimensions(self) -> int:
         return 1
@@ -55,6 +60,7 @@ class Locked(Component):
 # System Definitions
 # -----------------------------------------------------------------------------
 
+
 class GravitySystem(System):
     """
     Vectorized gravity system for n‑body simulation.
@@ -62,6 +68,7 @@ class GravitySystem(System):
     Uses hybrid components for Position, Velocity, and Mass.
     All physics calculations are performed using NumPy vectorized operations.
     """
+
     group = "physics"
 
     def update(self, world: World, dt: float) -> None:
@@ -75,14 +82,14 @@ class GravitySystem(System):
             return
 
         # Retrieve physics data from dense arrays.
-        positions = pos_comp.array[:n]         # shape: (n, 2)
-        velocities = vel_comp.array[:n]        # shape: (n, 2)
-        masses = mass_comp.array[:n].flatten()    # shape: (n,)
+        positions = pos_comp.array[:n]  # shape: (n, 2)
+        velocities = vel_comp.array[:n]  # shape: (n, 2)
+        masses = mass_comp.array[:n].flatten()  # shape: (n,)
 
         # Compute pairwise differences: diff[i, j] = positions[j] - positions[i]
         diff = positions[None, :, :] - positions[:, None, :]  # shape: (n, n, 2)
         eps = 1e-3  # Avoid division by zero
-        dist_sq = np.sum(diff ** 2, axis=2) + eps  # shape: (n, n)
+        dist_sq = np.sum(diff**2, axis=2) + eps  # shape: (n, n)
         dist = np.sqrt(dist_sq)  # shape: (n, n)
 
         # Compute force magnitudes: F = G * m_i * m_j / r^2.
@@ -116,6 +123,7 @@ class GravitySystem(System):
 
 class RenderSystem(System):
     """Render entities using their Position and Renderable data."""
+
     group = "render"
 
     def __init__(self, screen: pygame.Surface):
@@ -138,6 +146,7 @@ class CleanupSystem(System):
     """
     Removes entities that are farther than a threshold from the screen center.
     """
+
     group = "physics"
 
     def update(self, world: World, dt: float) -> None:
@@ -159,8 +168,10 @@ class CleanupSystem(System):
 # UI Helper Functions
 # -----------------------------------------------------------------------------
 
-def draw_slider(screen: pygame.Surface, slider_rect: pygame.Rect,
-                handle_pos: int) -> None:
+
+def draw_slider(
+    screen: pygame.Surface, slider_rect: pygame.Rect, handle_pos: int
+) -> None:
     pygame.draw.rect(screen, (100, 100, 100), slider_rect)
     handle_rect = pygame.Rect(0, 0, 10, slider_rect.height + 4)
     handle_rect.centerx = handle_pos
@@ -168,15 +179,17 @@ def draw_slider(screen: pygame.Surface, slider_rect: pygame.Rect,
     pygame.draw.rect(screen, (200, 200, 200), handle_rect)
 
 
-def slider_value_from_pos(x: int, slider_rect: pygame.Rect, min_val: float,
-                          max_val: float) -> float:
+def slider_value_from_pos(
+    x: int, slider_rect: pygame.Rect, min_val: float, max_val: float
+) -> float:
     rel_x = x - slider_rect.left
     ratio = max(0, min(1, rel_x / slider_rect.width))
     return min_val + ratio * (max_val - min_val)
 
 
-def slider_handle_pos(value: float, slider_rect: pygame.Rect, min_val: float,
-                      max_val: float) -> int:
+def slider_handle_pos(
+    value: float, slider_rect: pygame.Rect, min_val: float, max_val: float
+) -> int:
     ratio = (value - min_val) / (max_val - min_val)
     return int(slider_rect.left + ratio * slider_rect.width)
 
@@ -184,6 +197,7 @@ def slider_handle_pos(value: float, slider_rect: pygame.Rect, min_val: float,
 # -----------------------------------------------------------------------------
 # Main Simulation Loop and Interaction
 # -----------------------------------------------------------------------------
+
 
 def main() -> None:
     pygame.init()
@@ -248,7 +262,9 @@ def main() -> None:
                     # Check if clicking on slider.
                     if slider_rect.collidepoint(mx, my):
                         slider_dragging = True
-                        selected_radius = slider_value_from_pos(mx, slider_rect, min_radius, max_radius)
+                        selected_radius = slider_value_from_pos(
+                            mx, slider_rect, min_radius, max_radius
+                        )
                     # Check if clicking on lock checkbox.
                     elif lock_checkbox_rect.collidepoint(mx, my):
                         lock_enabled = not lock_enabled
@@ -260,7 +276,9 @@ def main() -> None:
             elif event.type == pygame.MOUSEMOTION:
                 mx, my = pygame.mouse.get_pos()
                 if slider_dragging:
-                    selected_radius = slider_value_from_pos(mx, slider_rect, min_radius, max_radius)
+                    selected_radius = slider_value_from_pos(
+                        mx, slider_rect, min_radius, max_radius
+                    )
                 elif dragging:
                     current_drag_pos = pygame.mouse.get_pos()
 
@@ -275,7 +293,7 @@ def main() -> None:
                     r = random.randint(100, 255)
                     g = random.randint(100, 255)
                     b = random.randint(100, 255)
-                    mass = (selected_radius ** 3) * 500  # mass ∝ radius³
+                    mass = (selected_radius**3) * 500  # mass ∝ radius³
                     # Build list of component types.
                     comp_types = [Position, Velocity, Mass, Renderable]
                     if lock_enabled:
@@ -284,7 +302,7 @@ def main() -> None:
                         Position: start_pos,
                         Velocity: (vx, vy),
                         Mass: (mass,),
-                        Renderable: (r, g, b, int(selected_radius))
+                        Renderable: (r, g, b, int(selected_radius)),
                     }
                     if lock_enabled:
                         init_data[Locked] = (1,)  # Arbitrary value indicating locked.
@@ -306,15 +324,29 @@ def main() -> None:
         # Slider label.
         label = font.render("Object Size", True, (200, 200, 200))
         screen.blit(label, (slider_rect.left, slider_rect.top - 25))
-        handle_x = slider_handle_pos(selected_radius, slider_rect, min_radius, max_radius)
+        handle_x = slider_handle_pos(
+            selected_radius, slider_rect, min_radius, max_radius
+        )
         draw_slider(screen, slider_rect, handle_x)
         value_label = font.render(f"{int(selected_radius)}", True, (200, 200, 200))
         screen.blit(value_label, (slider_rect.right + 10, slider_rect.top))
         # Draw lock checkbox.
         pygame.draw.rect(screen, (100, 100, 100), lock_checkbox_rect)
         if lock_enabled:
-            pygame.draw.line(screen, (200, 200, 200), lock_checkbox_rect.topleft, lock_checkbox_rect.bottomright, 2)
-            pygame.draw.line(screen, (200, 200, 200), lock_checkbox_rect.topright, lock_checkbox_rect.bottomleft, 2)
+            pygame.draw.line(
+                screen,
+                (200, 200, 200),
+                lock_checkbox_rect.topleft,
+                lock_checkbox_rect.bottomright,
+                2,
+            )
+            pygame.draw.line(
+                screen,
+                (200, 200, 200),
+                lock_checkbox_rect.topright,
+                lock_checkbox_rect.bottomleft,
+                2,
+            )
         lock_label = font.render("Lock", True, (200, 200, 200))
         screen.blit(lock_label, (lock_checkbox_rect.right + 5, lock_checkbox_rect.top))
 
@@ -325,8 +357,10 @@ def main() -> None:
 
         # FPS counter.
         fps_text = font.render(
-            f"FPS: {int(clock.get_fps())}, "
-            f"Entities: {world.num_entities}", True, (255, 255, 255))
+            f"FPS: {int(clock.get_fps())}, " f"Entities: {world.num_entities}",
+            True,
+            (255, 255, 255),
+        )
         screen.blit(fps_text, (820, 10))
 
         pygame.display.flip()
@@ -336,5 +370,5 @@ def main() -> None:
     sys.exit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

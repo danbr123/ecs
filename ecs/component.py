@@ -29,6 +29,7 @@ class Component(ABC):
 
     Every component must inherit from this class in order to be processed properly.
     """
+
     initial_capacity = 3
 
     __slots__ = ("_array", "entity_to_index", "free_slots", "size")
@@ -74,8 +75,9 @@ class Component(ABC):
             raise ValueError(f"Expected shape {expected_shape}, got {value.shape}.")
         self._array.set_array(value)
 
-    def add(self, entity_id: int,
-            val: Optional[Union[Tuple[Number, ...], Number]] = None) -> None:
+    def add(
+        self, entity_id: int, val: Optional[Union[Tuple[Number, ...], Number]] = None
+    ) -> None:
         """Attach data for a new entity.
 
         The data is stored in a compact array slot. If free slots are available
@@ -88,7 +90,8 @@ class Component(ABC):
             val = (val,)
         if len(val) != self.dimensions:
             raise ValueError(
-                f"Expected value with {self.dimensions} dimensions, got {len(val)}.")
+                f"Expected value with {self.dimensions} dimensions, got {len(val)}."
+            )
 
         # Determine the index in the dense array.
         if self.free_slots:
@@ -128,8 +131,9 @@ class Component(ABC):
         self.free_slots.append(last_index)
         self.size -= 1
 
-    def update_value(self, entity_id: int,
-                     val: Union[Tuple[Number, ...], Number]) -> None:
+    def update_value(
+        self, entity_id: int, val: Union[Tuple[Number, ...], Number]
+    ) -> None:
         """
         Update the stored data for an entity.
         """
@@ -162,6 +166,7 @@ class ComponentRegistry:
     Allows a single instance per component type, and provides a function that extracts
     the signature of a list of components (signature may differ in different registries)
     """
+
     def __init__(self):
         self._component_bits: Dict[Type[Component], int] = {}
         self._next_bit = 1
@@ -177,7 +182,8 @@ class ComponentRegistry:
         return self._component_bits[comp_type]
 
     def compute_signature(
-            self, components: Union[List[Type[Component]], _CompDataT]) -> int:
+        self, components: Union[List[Type[Component]], _CompDataT]
+    ) -> int:
         """Get unique signature for a composition of components.
 
         The signature is only relevant for a specific registry. Each may have a

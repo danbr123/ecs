@@ -13,6 +13,7 @@ class ArrayWrapper:
     explicitly defines most of the special methods so that Python's built-in
     operators (e.g., +, -, @) work as expected.
     """
+
     scale_factor = 1.5
 
     def __init__(self, array: np.ndarray):
@@ -111,11 +112,11 @@ class ArrayWrapper:
 
     def __pow__(self, other, modulo=None):
         if modulo is None:
-            return self._array ** other
+            return self._array**other
         return pow(self._array, other, modulo)
 
     def __rpow__(self, other):
-        return other ** self._array
+        return other**self._array
 
     def __matmul__(self, other):
         return self._array @ other

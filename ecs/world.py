@@ -21,7 +21,8 @@ class Archetype:
 
     Removal uses a swap‐and‐pop strategy for efficiency.
     """
-    __slots__ = ('signature', 'entities', 'storage', 'index_map')
+
+    __slots__ = ("signature", "entities", "storage", "index_map")
 
     def __init__(self, signature: int) -> None:
         self.signature: int = signature
@@ -86,6 +87,7 @@ class World:
       - Query caching to speed up repeated queries.
       - Efficient cleanup via free lists and swap‐and‐pop removal.
     """
+
     def __init__(self) -> None:
         self.archetypes: Dict[int, Archetype] = {}
         self.entity_to_archetype: Dict[int, Archetype] = {}
@@ -96,8 +98,7 @@ class World:
 
         self.systems: List[System] = []
 
-        self.query_cache: Dict[
-            int, Tuple[List[Tuple[int, _CompDataT]], int]] = {}
+        self.query_cache: Dict[int, Tuple[List[Tuple[int, _CompDataT]], int]] = {}
         self.world_version: int = 0
 
         self.event_bus = EventBus()
@@ -120,9 +121,7 @@ class World:
         return self.archetypes[signature]
 
     def register_component(
-            self,
-            comp_type: Type[Component],
-            instance: Optional[Component] = None
+        self, comp_type: Type[Component], instance: Optional[Component] = None
     ) -> None:
         """Register a component instance for the given type.
 
@@ -155,7 +154,8 @@ class World:
             # raises an error
             raise ValueError(
                 f"Cannot register a new instance for component type {comp_type} - "
-                f"The component type is already registered for this world.")
+                f"The component type is already registered for this world."
+            )
 
     def get_component_instance(self, comp_type: Type[Component]) -> Component:
         """
@@ -174,7 +174,8 @@ class World:
         self,
         components: List[Type[Component]],
         component_initial_data: Optional[
-            Dict[Type[Component], Union[Tuple[Number, ...], Number]]] = None
+            Dict[Type[Component], Union[Tuple[Number, ...], Number]]
+        ] = None,
     ) -> int:
         """Create an entity with a list of component types.
 
@@ -241,7 +242,7 @@ class World:
         self,
         entity_id: int,
         comp_type: Type[Component],
-        initial_data: Optional[Union[Tuple[Number, ...], Number]] = None
+        initial_data: Optional[Union[Tuple[Number, ...], Number]] = None,
     ) -> None:
         """Add a component to an existing entity.
 
@@ -298,8 +299,9 @@ class World:
         comp_instance.remove(entity_id)
         self._invalidate_query_cache()
 
-    def query(self, required_comp_types: List[Type[Component]]
-              ) -> List[Tuple[int, _CompDataT]]:
+    def query(
+        self, required_comp_types: List[Type[Component]]
+    ) -> List[Tuple[int, _CompDataT]]:
         """Query entities that have at least the required component types.
 
         Returns a list of tuples, each containing an entity id and a dict mapping
