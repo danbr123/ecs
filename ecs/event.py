@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, List, Optional, Type, TypeVar
 from weakref import ref, WeakMethod
 
 
@@ -8,7 +8,10 @@ class Event:
     pass
 
 
-WeakCallable = Callable[[], Optional[Callable[[Event], None]]]
+_T = TypeVar("_T", bound=Event)
+
+
+WeakCallable = Callable[[], Optional[Callable[[_T], None]]]
 
 
 class EventBus:
@@ -24,14 +27,12 @@ class EventBus:
     """
 
     def __init__(self) -> None:
-        self._subscribers: Dict[Type[Event], List[WeakCallable]] = {}
+        self._subscribers: Dict[Type[_T], List[WeakCallable]] = {}
         # Two buffers for asynchronous events.
-        self._current_async_queue: List[Event] = []
-        self._next_async_queue: List[Event] = []
+        self._current_async_queue: List[_T] = []
+        self._next_async_queue: List[_T] = []
 
-    def subscribe(
-        self, event_type: Type[Event], handler: Callable[[Event], None]
-    ) -> None:
+    def subscribe(self, event_type: Type[_T], handler: Callable[[_T], None]) -> None:
         """Subscribe a handler to a specific event type.
 
         Whenever an event of that type is dispatched, all subscribers will be called
@@ -63,9 +64,7 @@ class EventBus:
             weak_handler = ref(handler, _remove)
         self._subscribers[event_type].append(weak_handler)
 
-    def unsubscribe(
-        self, event_type: Type[Event], handler: Callable[[Event], None]
-    ) -> None:
+    def unsubscribe(self, event_type: Type[_T], handler: Callable[[_T], None]) -> None:
         """Unsubscribe a handler from a specific event type.
 
         Args:
@@ -78,7 +77,7 @@ class EventBus:
                 if actual is None or actual == handler:
                     self._subscribers[event_type].remove(weak_handler)
 
-    def publish_sync(self, event: Event) -> None:
+    def publish_sync(self, event: _T) -> None:
         """Publish an event synchronously.
 
         The event is immediately dispatched to all subscribers registered for its type.
@@ -94,16 +93,11 @@ class EventBus:
             if actual is not None:
                 actual(event)
 
-    def publish_async(self, event: Event) -> None:
+    def publish_async(self, event: _T) -> None:
         """Publish an event asynchronously.
 
         The event is added to the asynchronous queue and will be processed
         in the next update cycle.
-
-        Note:
-            Async events are processed at the END of the NEXT update cycle. This means
-                that there is a 1 update delay between publishing and processing.
-                for real-time updates - use `publish_sync` instead.
 
         Args:
             event (Event): The event to publish.
