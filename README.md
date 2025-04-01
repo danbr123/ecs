@@ -30,9 +30,5 @@ This package supports:
 ### Example usage:
 
 ```python
-from ecs.world import World
-from ecs.component import Component
-from ecs.system import System
-from ecs.event import Event
-
+print("Nothing here yet...")
 ```
