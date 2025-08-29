@@ -2,6 +2,7 @@ from numbers import Number
 from typing import Dict, List, Optional, Tuple, Union, TypeVar, Type
 import warnings
 
+from ecs.resources import Resources
 from ecs.system import System
 from ecs.component import Component, ComponentRegistry
 from ecs.event import EventBus
@@ -103,6 +104,8 @@ class World:
 
         self.event_bus = EventBus()
         self.component_registry = ComponentRegistry()
+
+        self.resources = Resources()
 
     def _invalidate_query_cache(self) -> None:
         """clear cache and update world version"""
